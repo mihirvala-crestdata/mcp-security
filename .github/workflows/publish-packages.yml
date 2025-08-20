@@ -17,6 +17,25 @@ jobs:
       scc_changed: ${{ steps.check_versions.outputs.scc_changed }}
       secops_changed: ${{ steps.check_versions.outputs.secops_changed }}
       soar_changed: ${{ steps.check_versions.outputs.soar_changed }}
+      # Package names
+      gti_name: ${{ steps.check_versions.outputs.gti_name }}
+      scc_name: ${{ steps.check_versions.outputs.scc_name }}
+      secops_name: ${{ steps.check_versions.outputs.secops_name }}
+      soar_name: ${{ steps.check_versions.outputs.soar_name }}
+      # Version information
+      gti_current_ver: ${{ steps.check_versions.outputs.gti_current_ver }}
+      scc_current_ver: ${{ steps.check_versions.outputs.scc_current_ver }}
+      secops_current_ver: ${{ steps.check_versions.outputs.secops_current_ver }}
+      soar_current_ver: ${{ steps.check_versions.outputs.soar_current_ver }}
+      gti_prev_ver: ${{ steps.check_versions.outputs.gti_prev_ver }}
+      scc_prev_ver: ${{ steps.check_versions.outputs.scc_prev_ver }}
+      secops_prev_ver: ${{ steps.check_versions.outputs.secops_prev_ver }}
+      soar_prev_ver: ${{ steps.check_versions.outputs.soar_prev_ver }}
+      # Status messages
+      gti_status: ${{ steps.check_versions.outputs.gti_status }}
+      scc_status: ${{ steps.check_versions.outputs.scc_status }}
+      secops_status: ${{ steps.check_versions.outputs.secops_status }}
+      soar_status: ${{ steps.check_versions.outputs.soar_status }}
     
     steps:
       - name: Checkout code
@@ -29,43 +48,79 @@ jobs:
         with:
           python-version: '3.11'
       
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install packaging build twine
+
       - name: Check version changes
         id: check_versions
         run: |
-          # Function to check if version changed in the package
+          # Function to compare package versions and check PyPI availability
           check_version_change() {
             local package_path=$1
             local output_var=$2
+            local name_var=$3
+            local current_ver_var=$4
+            local prev_ver_var=$5
+            local status_var=$6
             
-            # Check if package directory exists in the changes
+            # Get package name from pyproject.toml
+            package_name=$(grep -Po "(?<=name = \").*(?=\")" "server/$package_path/pyproject.toml")
+            echo "${name_var}=${package_name}" >> $GITHUB_OUTPUT
+            
+            # Extract current version
+            current_version=$(grep -Po "(?<=version = \").*(?=\")" "server/$package_path/pyproject.toml")
+            echo "${current_ver_var}=${current_version}" >> $GITHUB_OUTPUT
+            
+            # Check if there are changes to this package directory
             if git diff --name-only HEAD^ HEAD | grep -q "^server/$package_path/"; then
-              # Extract current version
-              current_version=$(grep -Po "(?<=version = \").*(?=\")" "server/$package_path/pyproject.toml")
-              
-              # Get previous version
+              # Get previous version if available
               prev_version=$(git show HEAD^:server/$package_path/pyproject.toml 2>/dev/null | grep -Po "(?<=version = \").*(?=\")" || echo "0.0.0")
+              echo "${prev_ver_var}=${prev_version}" >> $GITHUB_OUTPUT
               
               echo "Current $package_path version: $current_version, Previous version: $prev_version"
               
-              # Compare versions and set output
-              if [ "$current_version" != "$prev_version" ]; then
+              # Use Python to properly compare versions
+              python -c "from packaging import version; exit(0 if version.parse('$current_version') > version.parse('$prev_version') else 1)"
+              if [ $? -eq 0 ]; then
                 echo "$output_var=true" >> $GITHUB_OUTPUT
-                echo "$package_path version changed from $prev_version to $current_version"
+                echo "${status_var}=Version increased from $prev_version to $current_version" >> $GITHUB_OUTPUT
+                echo "$package_path version increased from $prev_version to $current_version"
               else
                 echo "$output_var=false" >> $GITHUB_OUTPUT
-                echo "$package_path version unchanged"
+                echo "${status_var}=Version NOT increased (current: $current_version, previous: $prev_version)" >> $GITHUB_OUTPUT
+                echo "$package_path version NOT increased (current: $current_version, previous: $prev_version)"
               fi
             else
+              # No changes in this package directory
+              echo "${prev_ver_var}=N/A" >> $GITHUB_OUTPUT
+              echo "${status_var}=No changes detected" >> $GITHUB_OUTPUT
               echo "$output_var=false" >> $GITHUB_OUTPUT
               echo "No changes detected in $package_path"
+            fi
+            
+            # Check if package exists on PyPI
+            if ! python -m pip install $package_name==0.0.0 2>&1 | grep -q "No matching distribution"; then
+              echo "${name_var}_exists=true" >> $GITHUB_OUTPUT
+              echo "Package $package_name exists on PyPI"
+            else
+              # If package doesn't exist on PyPI but we have a version, we should publish
+              if [ "$output_var" = "false" ]; then
+                echo "$output_var=true" >> $GITHUB_OUTPUT
+                echo "${status_var}=New package with version $current_version" >> $GITHUB_OUTPUT
+                echo "New package $package_name with version $current_version will be published"
+              fi
+              echo "${name_var}_exists=false" >> $GITHUB_OUTPUT
+              echo "Package $package_name does not exist on PyPI"
             fi
           }
           
           # Check each package
-          check_version_change "gti" "gti_changed"
-          check_version_change "scc" "scc_changed"
-          check_version_change "secops" "secops_changed"
-          check_version_change "secops-soar" "soar_changed"
+          check_version_change "gti" "gti_changed" "gti_name" "gti_current_ver" "gti_prev_ver" "gti_status"
+          check_version_change "scc" "scc_changed" "scc_name" "scc_current_ver" "scc_prev_ver" "scc_status"
+          check_version_change "secops" "secops_changed" "secops_name" "secops_current_ver" "secops_prev_ver" "secops_status"
+          check_version_change "secops-soar" "soar_changed" "soar_name" "soar_current_ver" "soar_prev_ver" "soar_status"
 
   request_approval:
     needs: detect_changes
@@ -75,21 +130,55 @@ jobs:
             needs.detect_changes.outputs.secops_changed == 'true' || 
             needs.detect_changes.outputs.soar_changed == 'true' }}
     steps:
-      - name: Summarize changes
-        id: changes
+      - name: Create detailed summary for approval
+        id: changes_summary
         run: |
-          echo "The following package versions have changed:"
+          echo "# 🚀 MCP Package Publication Request" >> $GITHUB_STEP_SUMMARY
+          echo "## Packages to be published:" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Create a table for better visibility
+          echo "| Package | Status | Current Version | Previous Version |" >> $GITHUB_STEP_SUMMARY
+          echo "| ------- | ------ | --------------- | --------------- |" >> $GITHUB_STEP_SUMMARY
+          
           if [ "${{ needs.detect_changes.outputs.gti_changed }}" == "true" ]; then
-            echo "- gti-mcp"
+            echo "| ${{ needs.detect_changes.outputs.gti_name }} | ${{ needs.detect_changes.outputs.gti_status }} | ${{ needs.detect_changes.outputs.gti_current_ver }} | ${{ needs.detect_changes.outputs.gti_prev_ver }} |" >> $GITHUB_STEP_SUMMARY
           fi
+          
           if [ "${{ needs.detect_changes.outputs.scc_changed }}" == "true" ]; then
-            echo "- scc-mcp"
+            echo "| ${{ needs.detect_changes.outputs.scc_name }} | ${{ needs.detect_changes.outputs.scc_status }} | ${{ needs.detect_changes.outputs.scc_current_ver }} | ${{ needs.detect_changes.outputs.scc_prev_ver }} |" >> $GITHUB_STEP_SUMMARY
           fi
+          
           if [ "${{ needs.detect_changes.outputs.secops_changed }}" == "true" ]; then
-            echo "- secops-mcp"
+            echo "| ${{ needs.detect_changes.outputs.secops_name }} | ${{ needs.detect_changes.outputs.secops_status }} | ${{ needs.detect_changes.outputs.secops_current_ver }} | ${{ needs.detect_changes.outputs.secops_prev_ver }} |" >> $GITHUB_STEP_SUMMARY
           fi
+          
           if [ "${{ needs.detect_changes.outputs.soar_changed }}" == "true" ]; then
-            echo "- SoarAS"
+            echo "| ${{ needs.detect_changes.outputs.soar_name }} | ${{ needs.detect_changes.outputs.soar_status }} | ${{ needs.detect_changes.outputs.soar_current_ver }} | ${{ needs.detect_changes.outputs.soar_prev_ver }} |" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### ⚠️ Please review and approve this publication request" >> $GITHUB_STEP_SUMMARY
+          echo "_Packages will be published to TestPyPI_" >> $GITHUB_STEP_SUMMARY
+      
+      - name: Display approval information
+        run: |
+          echo "::notice title=Packages Pending Approval::The following packages need approval for publication:"
+          
+          if [ "${{ needs.detect_changes.outputs.gti_changed }}" == "true" ]; then
+            echo "::notice::${{ needs.detect_changes.outputs.gti_name }} (${{ needs.detect_changes.outputs.gti_current_ver }})"
+          fi
+          
+          if [ "${{ needs.detect_changes.outputs.scc_changed }}" == "true" ]; then
+            echo "::notice::${{ needs.detect_changes.outputs.scc_name }} (${{ needs.detect_changes.outputs.scc_current_ver }})"
+          fi
+          
+          if [ "${{ needs.detect_changes.outputs.secops_changed }}" == "true" ]; then
+            echo "::notice::${{ needs.detect_changes.outputs.secops_name }} (${{ needs.detect_changes.outputs.secops_current_ver }})"
+          fi
+          
+          if [ "${{ needs.detect_changes.outputs.soar_changed }}" == "true" ]; then
+            echo "::notice::${{ needs.detect_changes.outputs.soar_name }} (${{ needs.detect_changes.outputs.soar_current_ver }})"
           fi
     
     # This creates a manual approval step
