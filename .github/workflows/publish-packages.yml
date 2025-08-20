@@ -100,19 +100,19 @@ jobs:
               echo "No changes detected in $package_path"
             fi
             
-            # Check if package exists on PyPI
-            if ! python -m pip install -i https://test.pypi.org/simple/ $package_name==0.0.0 2>&1 | grep -q "No matching distribution"; then
+            # Check if package exists on TestPyPI without requiring a specific version
+            if pip index versions -i https://test.pypi.org/simple/ $package_name &>/dev/null; then
               echo "${name_var}_exists=true" >> $GITHUB_OUTPUT
-              echo "Package $package_name exists on PyPI"
+              echo "Package $package_name exists on TestPyPI"
             else
-              # If package doesn't exist on PyPI but we have a version, we should publish
+              # If package doesn't exist on TestPyPI but we have a version, we should publish
               if [ "$output_var" = "false" ]; then
                 echo "$output_var=true" >> $GITHUB_OUTPUT
                 echo "${status_var}=New package with version $current_version" >> $GITHUB_OUTPUT
                 echo "New package $package_name with version $current_version will be published"
               fi
               echo "${name_var}_exists=false" >> $GITHUB_OUTPUT
-              echo "Package $package_name does not exist on PyPI"
+              echo "Package $package_name does not exist on TestPyPI"
             fi
           }
           
