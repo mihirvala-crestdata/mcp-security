@@ -101,7 +101,7 @@ jobs:
             fi
             
             # Check if package exists on PyPI
-            if ! python -m pip install $package_name==0.0.0 2>&1 | grep -q "No matching distribution"; then
+            if ! python -m pip install -i https://test.pypi.org/simple/ $package_name==0.0.0 2>&1 | grep -q "No matching distribution"; then
               echo "${name_var}_exists=true" >> $GITHUB_OUTPUT
               echo "Package $package_name exists on PyPI"
             else
