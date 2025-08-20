@@ -105,12 +105,10 @@ jobs:
               echo "${name_var}_exists=true" >> $GITHUB_OUTPUT
               echo "Package $package_name exists on TestPyPI"
             else
-              # If package doesn't exist on TestPyPI but we have a version, we should publish
-              if [ "$output_var" = "false" ]; then
-                echo "$output_var=true" >> $GITHUB_OUTPUT
-                echo "${status_var}=New package with version $current_version" >> $GITHUB_OUTPUT
-                echo "New package $package_name with version $current_version will be published"
-              fi
+              # Always publish if package doesn't exist on TestPyPI
+              echo "$output_var=true" >> $GITHUB_OUTPUT
+              echo "${status_var}=New package with version $current_version" >> $GITHUB_OUTPUT
+              echo "New package $package_name with version $current_version will be published"
               echo "${name_var}_exists=false" >> $GITHUB_OUTPUT
               echo "Package $package_name does not exist on TestPyPI"
             fi
