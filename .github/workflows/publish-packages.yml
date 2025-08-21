@@ -196,35 +196,7 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Please review and approve this publication request" >> $GITHUB_STEP_SUMMARY
           echo "_Packages will be published to TestPyPI_" >> $GITHUB_STEP_SUMMARY
-          
-          # Also generate an output file to ensure it's written
-          echo "# Package Changes Summary" > summary.md
-          echo "| Package | Current Version | Previous Version |" >> summary.md
-          echo "| ------- | --------------- | --------------- |" >> summary.md
-          
-          if [ "${{ needs.detect_changes.outputs.gti_changed }}" == "true" ]; then
-            echo "| ${{ needs.detect_changes.outputs.gti_name }} | ${{ needs.detect_changes.outputs.gti_current_ver }} | ${{ needs.detect_changes.outputs.gti_prev_ver }} |" >> summary.md
-          fi
-          
-          if [ "${{ needs.detect_changes.outputs.scc_changed }}" == "true" ]; then
-            echo "| ${{ needs.detect_changes.outputs.scc_name }} | ${{ needs.detect_changes.outputs.scc_current_ver }} | ${{ needs.detect_changes.outputs.scc_prev_ver }} |" >> summary.md
-          fi
-          
-          if [ "${{ needs.detect_changes.outputs.secops_changed }}" == "true" ]; then
-            echo "| ${{ needs.detect_changes.outputs.secops_name }} | ${{ needs.detect_changes.outputs.secops_current_ver }} | ${{ needs.detect_changes.outputs.secops_prev_ver }} |" >> summary.md
-          fi
-          
-          if [ "${{ needs.detect_changes.outputs.soar_changed }}" == "true" ]; then
-            echo "| ${{ needs.detect_changes.outputs.soar_name }} | ${{ needs.detect_changes.outputs.soar_current_ver }} | ${{ needs.detect_changes.outputs.soar_prev_ver }} |" >> summary.md
-          fi
-          
-          cat summary.md
-          
-      - name: Upload summary as artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: package-changes-summary
-          path: summary.md
+      
 
   request_approval:
     needs: [detect_changes, display_summary]
