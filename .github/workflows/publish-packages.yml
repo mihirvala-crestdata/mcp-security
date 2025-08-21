@@ -127,9 +127,9 @@ jobs:
     name: Approve package(s) publication
     # This creates a manual approval step
     # The workflow will continue only when approved
-    # environment:
-    #   name: production
-    #   url: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+    environment:
+      name: production
+      url: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
     if: ${{ needs.detect_changes.outputs.gti_changed == 'true' || 
             needs.detect_changes.outputs.scc_changed == 'true' || 
             needs.detect_changes.outputs.secops_changed == 'true' || 
