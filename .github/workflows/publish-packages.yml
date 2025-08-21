@@ -123,14 +123,52 @@ jobs:
 
   display_summary:
     needs: detect_changes
+    name: Change summary
     runs-on: ubuntu-latest
     if: ${{ needs.detect_changes.outputs.gti_changed == 'true' || 
             needs.detect_changes.outputs.scc_changed == 'true' || 
             needs.detect_changes.outputs.secops_changed == 'true' || 
             needs.detect_changes.outputs.soar_changed == 'true' }}
     steps:
-      - name: Create detailed summary for approval
+      - name: Summary for changes
         run: |
+          # Echo to console for visibility in logs
+          echo "================ PACKAGE CHANGES SUMMARY ================="
+          
+          # Create GitHub notices for each package change
+          if [ "${{ needs.detect_changes.outputs.gti_changed }}" == "true" ]; then
+            echo "::group::${{ needs.detect_changes.outputs.gti_name }} (${{ needs.detect_changes.outputs.gti_current_ver }})"
+            echo "Status: ${{ needs.detect_changes.outputs.gti_status }}"
+            echo "Previous version: ${{ needs.detect_changes.outputs.gti_prev_ver }}"
+            echo "::endgroup::"
+            echo "::notice title=${{ needs.detect_changes.outputs.gti_name }} Changes::${{ needs.detect_changes.outputs.gti_status }}"
+          fi
+          
+          if [ "${{ needs.detect_changes.outputs.scc_changed }}" == "true" ]; then
+            echo "::group::${{ needs.detect_changes.outputs.scc_name }} (${{ needs.detect_changes.outputs.scc_current_ver }})"
+            echo "Status: ${{ needs.detect_changes.outputs.scc_status }}"
+            echo "Previous version: ${{ needs.detect_changes.outputs.scc_prev_ver }}"
+            echo "::endgroup::"
+            echo "::notice title=${{ needs.detect_changes.outputs.scc_name }} Changes::${{ needs.detect_changes.outputs.scc_status }}"
+          fi
+          
+          if [ "${{ needs.detect_changes.outputs.secops_changed }}" == "true" ]; then
+            echo "::group::${{ needs.detect_changes.outputs.secops_name }} (${{ needs.detect_changes.outputs.secops_current_ver }})"
+            echo "Status: ${{ needs.detect_changes.outputs.secops_status }}"
+            echo "Previous version: ${{ needs.detect_changes.outputs.secops_prev_ver }}"
+            echo "::endgroup::"
+            echo "::notice title=${{ needs.detect_changes.outputs.secops_name }} Changes::${{ needs.detect_changes.outputs.secops_status }}"
+          fi
+          
+          if [ "${{ needs.detect_changes.outputs.soar_changed }}" == "true" ]; then
+            echo "::group::${{ needs.detect_changes.outputs.soar_name }} (${{ needs.detect_changes.outputs.soar_current_ver }})"
+            echo "Status: ${{ needs.detect_changes.outputs.soar_status }}"
+            echo "Previous version: ${{ needs.detect_changes.outputs.soar_prev_ver }}"
+            echo "::endgroup::"
+            echo "::notice title=${{ needs.detect_changes.outputs.soar_name }} Changes::${{ needs.detect_changes.outputs.soar_status }}"
+          fi
+          
+          # Create a step summary
           echo "# MCP Package Publication Request" >> $GITHUB_STEP_SUMMARY
           echo "## Packages to be published:" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -158,6 +196,35 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Please review and approve this publication request" >> $GITHUB_STEP_SUMMARY
           echo "_Packages will be published to TestPyPI_" >> $GITHUB_STEP_SUMMARY
+          
+          # Also generate an output file to ensure it's written
+          echo "# Package Changes Summary" > summary.md
+          echo "| Package | Current Version | Previous Version |" >> summary.md
+          echo "| ------- | --------------- | --------------- |" >> summary.md
+          
+          if [ "${{ needs.detect_changes.outputs.gti_changed }}" == "true" ]; then
+            echo "| ${{ needs.detect_changes.outputs.gti_name }} | ${{ needs.detect_changes.outputs.gti_current_ver }} | ${{ needs.detect_changes.outputs.gti_prev_ver }} |" >> summary.md
+          fi
+          
+          if [ "${{ needs.detect_changes.outputs.scc_changed }}" == "true" ]; then
+            echo "| ${{ needs.detect_changes.outputs.scc_name }} | ${{ needs.detect_changes.outputs.scc_current_ver }} | ${{ needs.detect_changes.outputs.scc_prev_ver }} |" >> summary.md
+          fi
+          
+          if [ "${{ needs.detect_changes.outputs.secops_changed }}" == "true" ]; then
+            echo "| ${{ needs.detect_changes.outputs.secops_name }} | ${{ needs.detect_changes.outputs.secops_current_ver }} | ${{ needs.detect_changes.outputs.secops_prev_ver }} |" >> summary.md
+          fi
+          
+          if [ "${{ needs.detect_changes.outputs.soar_changed }}" == "true" ]; then
+            echo "| ${{ needs.detect_changes.outputs.soar_name }} | ${{ needs.detect_changes.outputs.soar_current_ver }} | ${{ needs.detect_changes.outputs.soar_prev_ver }} |" >> summary.md
+          fi
+          
+          cat summary.md
+          
+      - name: Upload summary as artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: package-changes-summary
+          path: summary.md
 
   request_approval:
     needs: [detect_changes, display_summary]
