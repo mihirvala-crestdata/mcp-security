@@ -197,16 +197,12 @@ jobs:
           echo "### Please review and approve this publication request" >> $GITHUB_STEP_SUMMARY
           echo "_Packages will be published to TestPyPI_" >> $GITHUB_STEP_SUMMARY
       
-
   request_approval:
     needs: [detect_changes, display_summary]
     runs-on: ubuntu-latest
     name: Approve package(s) publication
-    # This creates a manual approval step
-    # The workflow will continue only when approved
     environment:
-      name: production
-      url: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+      name: production # The workflow will continue only when approved
     if: ${{ needs.detect_changes.outputs.gti_changed == 'true' || 
             needs.detect_changes.outputs.scc_changed == 'true' || 
             needs.detect_changes.outputs.secops_changed == 'true' || 
