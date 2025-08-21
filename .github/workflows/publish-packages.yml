@@ -123,7 +123,7 @@ jobs:
 
   display_summary:
     needs: detect_changes
-    name: Change summary
+    name: Change
     runs-on: ubuntu-latest
     if: ${{ needs.detect_changes.outputs.gti_changed == 'true' || 
             needs.detect_changes.outputs.scc_changed == 'true' || 
@@ -173,7 +173,7 @@ jobs:
           echo "## Packages to be published:" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
-          # Create a table for better visibility
+          # Table for package change
           echo "| Package | Status | Current Version | Previous Version |" >> $GITHUB_STEP_SUMMARY
           echo "| ------- | ------ | --------------- | --------------- |" >> $GITHUB_STEP_SUMMARY
           
@@ -200,7 +200,7 @@ jobs:
   request_approval:
     needs: [detect_changes, display_summary]
     runs-on: ubuntu-latest
-    name: Approve package(s) publication
+    name: Approve package publication
     environment:
       name: production # The workflow will continue only when approved
     if: ${{ needs.detect_changes.outputs.gti_changed == 'true' || 
