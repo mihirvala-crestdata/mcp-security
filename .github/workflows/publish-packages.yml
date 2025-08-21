@@ -182,51 +182,111 @@ jobs:
           echo "_Packages will be published to TestPyPI_" >> $GITHUB_STEP_SUMMARY
           
   request_approval:
-    needs: display_summary
+    needs: detect_changes
     runs-on: ubuntu-latest
     # This creates a manual approval step
     # The workflow will continue only when approved
-    environment: production
-    if: ${{ needs.display_summary.outputs.gti_changed == 'true' || 
-            needs.display_summary.outputs.scc_changed == 'true' || 
-            needs.display_summary.outputs.secops_changed == 'true' || 
-            needs.display_summary.outputs.soar_changed == 'true' }}
+    environment:
+      name: production
+      url: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+    if: ${{ needs.detect_changes.outputs.gti_changed == 'true' || 
+            needs.detect_changes.outputs.scc_changed == 'true' || 
+            needs.detect_changes.outputs.secops_changed == 'true' || 
+            needs.detect_changes.outputs.soar_changed == 'true' }}
     outputs:
-      gti_changed: ${{ needs.display_summary.outputs.gti_changed }}
-      scc_changed: ${{ needs.display_summary.outputs.scc_changed }}
-      secops_changed: ${{ needs.display_summary.outputs.secops_changed }}
-      soar_changed: ${{ needs.display_summary.outputs.soar_changed }}
-      gti_name: ${{ needs.display_summary.outputs.gti_name }}
-      scc_name: ${{ needs.display_summary.outputs.scc_name }}
-      secops_name: ${{ needs.display_summary.outputs.secops_name }}
-      soar_name: ${{ needs.display_summary.outputs.soar_name }}
-      gti_current_ver: ${{ needs.display_summary.outputs.gti_current_ver }}
-      scc_current_ver: ${{ needs.display_summary.outputs.scc_current_ver }}
-      secops_current_ver: ${{ needs.display_summary.outputs.secops_current_ver }}
-      soar_current_ver: ${{ needs.display_summary.outputs.soar_current_ver }}
+      gti_changed: ${{ needs.detect_changes.outputs.gti_changed }}
+      scc_changed: ${{ needs.detect_changes.outputs.scc_changed }}
+      secops_changed: ${{ needs.detect_changes.outputs.secops_changed }}
+      soar_changed: ${{ needs.detect_changes.outputs.soar_changed }}
+      gti_name: ${{ needs.detect_changes.outputs.gti_name }}
+      scc_name: ${{ needs.detect_changes.outputs.scc_name }}
+      secops_name: ${{ needs.detect_changes.outputs.secops_name }}
+      soar_name: ${{ needs.detect_changes.outputs.soar_name }}
+      gti_current_ver: ${{ needs.detect_changes.outputs.gti_current_ver }}
+      scc_current_ver: ${{ needs.detect_changes.outputs.scc_current_ver }}
+      secops_current_ver: ${{ needs.detect_changes.outputs.secops_current_ver }}
+      soar_current_ver: ${{ needs.detect_changes.outputs.soar_current_ver }}
     steps:
+      - name: Create detailed summary for approval
+        id: changes_summary
+        run: |
+          echo "# 🚀 MCP Package Publication Request" >> $GITHUB_STEP_SUMMARY
+          echo "The following packages will be published to TestPyPI:" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ needs.detect_changes.outputs.gti_changed }}" == "true" ]; then
+            echo "- **${{ needs.detect_changes.outputs.gti_name }}**: ${{ needs.detect_changes.outputs.gti_current_ver }}" >> $GITHUB_STEP_SUMMARY
+            echo "  - Status: ${{ needs.detect_changes.outputs.gti_status }}" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ "${{ needs.detect_changes.outputs.scc_changed }}" == "true" ]; then
+            echo "- **${{ needs.detect_changes.outputs.scc_name }}**: ${{ needs.detect_changes.outputs.scc_current_ver }}" >> $GITHUB_STEP_SUMMARY
+            echo "  - Status: ${{ needs.detect_changes.outputs.scc_status }}" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ "${{ needs.detect_changes.outputs.secops_changed }}" == "true" ]; then
+            echo "- **${{ needs.detect_changes.outputs.secops_name }}**: ${{ needs.detect_changes.outputs.secops_current_ver }}" >> $GITHUB_STEP_SUMMARY
+            echo "  - Status: ${{ needs.detect_changes.outputs.secops_status }}" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ "${{ needs.detect_changes.outputs.soar_changed }}" == "true" ]; then
+            echo "- **${{ needs.detect_changes.outputs.soar_name }}**: ${{ needs.detect_changes.outputs.soar_current_ver }}" >> $GITHUB_STEP_SUMMARY
+            echo "  - Status: ${{ needs.detect_changes.outputs.soar_status }}" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### ⚠️ Please review and approve this publication request" >> $GITHUB_STEP_SUMMARY
+          echo "_Packages will be published to TestPyPI_" >> $GITHUB_STEP_SUMMARY
+
+      - name: Create deployment for approval with package summary
+        id: deployment
+        uses: bobheadxi/deployments@v1
+        with:
+          step: start
+          token: ${{ secrets.GITHUB_TOKEN }}
+          env: production
+          desc: |
+            🚀 TestPyPI Package Publication Request
+            
+            ${{ needs.detect_changes.outputs.gti_changed == 'true' && '✅ ' || '' }}${{ needs.detect_changes.outputs.gti_changed == 'true' && needs.detect_changes.outputs.gti_name || '' }}${{ needs.detect_changes.outputs.gti_changed == 'true' && ' (' || '' }}${{ needs.detect_changes.outputs.gti_changed == 'true' && needs.detect_changes.outputs.gti_current_ver || '' }}${{ needs.detect_changes.outputs.gti_changed == 'true' && ')' || '' }}
+            ${{ needs.detect_changes.outputs.scc_changed == 'true' && '✅ ' || '' }}${{ needs.detect_changes.outputs.scc_changed == 'true' && needs.detect_changes.outputs.scc_name || '' }}${{ needs.detect_changes.outputs.scc_changed == 'true' && ' (' || '' }}${{ needs.detect_changes.outputs.scc_changed == 'true' && needs.detect_changes.outputs.scc_current_ver || '' }}${{ needs.detect_changes.outputs.scc_changed == 'true' && ')' || '' }}
+            ${{ needs.detect_changes.outputs.secops_changed == 'true' && '✅ ' || '' }}${{ needs.detect_changes.outputs.secops_changed == 'true' && needs.detect_changes.outputs.secops_name || '' }}${{ needs.detect_changes.outputs.secops_changed == 'true' && ' (' || '' }}${{ needs.detect_changes.outputs.secops_changed == 'true' && needs.detect_changes.outputs.secops_current_ver || '' }}${{ needs.detect_changes.outputs.secops_changed == 'true' && ')' || '' }}
+            ${{ needs.detect_changes.outputs.soar_changed == 'true' && '✅ ' || '' }}${{ needs.detect_changes.outputs.soar_changed == 'true' && needs.detect_changes.outputs.soar_name || '' }}${{ needs.detect_changes.outputs.soar_changed == 'true' && ' (' || '' }}${{ needs.detect_changes.outputs.soar_changed == 'true' && needs.detect_changes.outputs.soar_current_ver || '' }}${{ needs.detect_changes.outputs.soar_changed == 'true' && ')' || '' }}
+            
+            Please review and approve this publication request.
+
       - name: Waiting for approval
         run: echo "Manual approval received. Proceeding with publication."
       
       - name: Display approval information
         run: |
-          echo "::notice title=Packages Pending Approval::The following packages need approval for publication:"
+          echo "::notice title=Packages Approved for Publication::The following packages have been approved:"
           
-          if [ "${{ needs.display_summary.outputs.gti_changed }}" == "true" ]; then
-            echo "::notice::${{ needs.display_summary.outputs.gti_name }} (${{ needs.display_summary.outputs.gti_current_ver }})"
+          if [ "${{ needs.detect_changes.outputs.gti_changed }}" == "true" ]; then
+            echo "::notice::${{ needs.detect_changes.outputs.gti_name }} (${{ needs.detect_changes.outputs.gti_current_ver }})"
           fi
           
-          if [ "${{ needs.display_summary.outputs.scc_changed }}" == "true" ]; then
-            echo "::notice::${{ needs.display_summary.outputs.scc_name }} (${{ needs.display_summary.outputs.scc_current_ver }})"
+          if [ "${{ needs.detect_changes.outputs.scc_changed }}" == "true" ]; then
+            echo "::notice::${{ needs.detect_changes.outputs.scc_name }} (${{ needs.detect_changes.outputs.scc_current_ver }})"
           fi
           
-          if [ "${{ needs.display_summary.outputs.secops_changed }}" == "true" ]; then
-            echo "::notice::${{ needs.display_summary.outputs.secops_name }} (${{ needs.display_summary.outputs.secops_current_ver }})"
+          if [ "${{ needs.detect_changes.outputs.secops_changed }}" == "true" ]; then
+            echo "::notice::${{ needs.detect_changes.outputs.secops_name }} (${{ needs.detect_changes.outputs.secops_current_ver }})"
           fi
           
-          if [ "${{ needs.display_summary.outputs.soar_changed }}" == "true" ]; then
-            echo "::notice::${{ needs.display_summary.outputs.soar_name }} (${{ needs.display_summary.outputs.soar_current_ver }})"
+          if [ "${{ needs.detect_changes.outputs.soar_changed }}" == "true" ]; then
+            echo "::notice::${{ needs.detect_changes.outputs.soar_name }} (${{ needs.detect_changes.outputs.soar_current_ver }})"
           fi
+          
+      - name: Update deployment status
+        if: always()
+        uses: bobheadxi/deployments@v1
+        with:
+          step: finish
+          token: ${{ secrets.GITHUB_TOKEN }}
+          status: ${{ job.status }}
+          env: production
+          deployment_id: ${{ steps.deployment.outputs.deployment_id }}
 
   publish_gti:
     needs: request_approval
