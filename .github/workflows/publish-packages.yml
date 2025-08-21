@@ -155,19 +155,11 @@ jobs:
           step: start
           token: ${{ secrets.GITHUB_TOKEN }}
           env: production
-          desc: |
-            🚀 TestPyPI Package Publication Request
-            
-            ${{ needs.detect_changes.outputs.gti_changed == 'true' && '✅ ' || '' }}${{ needs.detect_changes.outputs.gti_changed == 'true' && needs.detect_changes.outputs.gti_name || '' }}${{ needs.detect_changes.outputs.gti_changed == 'true' && ' (' || '' }}${{ needs.detect_changes.outputs.gti_changed == 'true' && needs.detect_changes.outputs.gti_current_ver || '' }}${{ needs.detect_changes.outputs.gti_changed == 'true' && ')' || '' }}
-            ${{ needs.detect_changes.outputs.scc_changed == 'true' && '✅ ' || '' }}${{ needs.detect_changes.outputs.scc_changed == 'true' && needs.detect_changes.outputs.scc_name || '' }}${{ needs.detect_changes.outputs.scc_changed == 'true' && ' (' || '' }}${{ needs.detect_changes.outputs.scc_changed == 'true' && needs.detect_changes.outputs.scc_current_ver || '' }}${{ needs.detect_changes.outputs.scc_changed == 'true' && ')' || '' }}
-            ${{ needs.detect_changes.outputs.secops_changed == 'true' && '✅ ' || '' }}${{ needs.detect_changes.outputs.secops_changed == 'true' && needs.detect_changes.outputs.secops_name || '' }}${{ needs.detect_changes.outputs.secops_changed == 'true' && ' (' || '' }}${{ needs.detect_changes.outputs.secops_changed == 'true' && needs.detect_changes.outputs.secops_current_ver || '' }}${{ needs.detect_changes.outputs.secops_changed == 'true' && ')' || '' }}
-            ${{ needs.detect_changes.outputs.soar_changed == 'true' && '✅ ' || '' }}${{ needs.detect_changes.outputs.soar_changed == 'true' && needs.detect_changes.outputs.soar_name || '' }}${{ needs.detect_changes.outputs.soar_changed == 'true' && ' (' || '' }}${{ needs.detect_changes.outputs.soar_changed == 'true' && needs.detect_changes.outputs.soar_current_ver || '' }}${{ needs.detect_changes.outputs.soar_changed == 'true' && ')' || '' }}
-            
-            Please review and approve this publication request.
+          desc: "TestPyPI Package Publication"
 
       - name: Log approved packages
         run: |
-          echo "# 🚀 Packages Approved for Publication" >> $GITHUB_STEP_SUMMARY
+          echo "# Packages Approved for Publication" >> $GITHUB_STEP_SUMMARY
           
           packages=""
           [ "${{ needs.detect_changes.outputs.gti_changed }}" == "true" ] && packages="$packages\n- **${{ needs.detect_changes.outputs.gti_name }}** (${{ needs.detect_changes.outputs.gti_current_ver }}) - ${{ needs.detect_changes.outputs.gti_status }}"
