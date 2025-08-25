@@ -6,7 +6,7 @@ on:
   workflow_dispatch:  # Allow manual triggering
     inputs:
       tags:
-        description: 'Comma-separated list of package tags (e.g., gti-v1.0.0,secops-v2.1.0)'
+        description: 'Comma-separated list of package tags (e.g., gti-v1.0.0,secops-v2.1.0,secops-soar-v1.0.0,scc-v1.0.0)'
         required: true
 
 jobs:
@@ -76,7 +76,7 @@ jobs:
             echo "${current_ver_var}=${current_version}" >> $GITHUB_OUTPUT
             
             # Check if package exists on PyPI
-            if pip index versions $package_name &>/dev/null; then
+            if pip index versions $package_name --index-url https://test.pypi.org/simple/ &>/dev/null; then
               echo "${name_var}_exists=true" >> $GITHUB_OUTPUT
               echo "Package $package_name exists on PyPI"
               PACKAGE_EXISTS="true"
@@ -310,7 +310,7 @@ jobs:
           
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Please review and approve this publication request" >> $GITHUB_STEP_SUMMARY
-          echo "_Packages will be published to TestPyPI_" >> $GITHUB_STEP_SUMMARY
+          echo "_Packages will be published to PyPI_" >> $GITHUB_STEP_SUMMARY
       
   request_approval:
     needs: [detect_changes, display_summary]
@@ -423,7 +423,7 @@ jobs:
           TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
         run: |
           python -m build
-          python -m twine upload dist/*
+          python -m twine upload --repository testpypi dist/*
   
   publish_scc:
     needs: request_approval
@@ -451,7 +451,7 @@ jobs:
           TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
         run: |
           python -m build
-          python -m twine upload dist/*
+          python -m twine upload --repository testpypi dist/*
   
   publish_secops:
     needs: request_approval
@@ -479,7 +479,7 @@ jobs:
           TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
         run: |
           python -m build
-          python -m twine upload dist/*
+          python -m twine upload --repository testpypi dist/*
   
   publish_soar:
     needs: request_approval
@@ -507,4 +507,4 @@ jobs:
           TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
         run: |
           python -m build
-          python -m twine upload dist/*
+          python -m twine upload --repository testpypi dist/*
