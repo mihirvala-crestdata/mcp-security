@@ -190,10 +190,6 @@ jobs:
       - name: Generate summary
         id: summary
         run: |
-          echo "## Package Changes Summary" >> $GITHUB_STEP_SUMMARY
-          echo "| Package | Status | Current Version | Previous Version |" >> $GITHUB_STEP_SUMMARY
-          echo "|---------|--------|-----------------|------------------|" >> $GITHUB_STEP_SUMMARY
-          
           # For console output
           echo "::group::Package Changes Summary"
           
@@ -207,6 +203,10 @@ jobs:
             echo "### 🔖 Publishing triggered manually with tags" >> $GITHUB_STEP_SUMMARY
             echo "* Tags: \`${{ github.event.inputs.tags }}\`" >> $GITHUB_STEP_SUMMARY
           fi
+          
+          echo "## Package Changes Summary" >> $GITHUB_STEP_SUMMARY
+          echo "| Package | Status | Current Version | Previous Version |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------|--------|-----------------|------------------|" >> $GITHUB_STEP_SUMMARY
           
           # Create the summary text
           summary=""
