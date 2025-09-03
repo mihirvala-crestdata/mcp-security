@@ -76,7 +76,7 @@ jobs:
             echo "${current_ver_var}=${current_version}" >> $GITHUB_OUTPUT
             
             # Check if package exists on PyPI
-            if pip index versions $package_name &>/dev/null; then
+            if pip index versions $package_name --index-url https://test.pypi.org/simple/ &>/dev/null; then
               echo "${name_var}_exists=true" >> $GITHUB_OUTPUT
               echo "Package $package_name exists on PyPI"
               PACKAGE_EXISTS="true"
@@ -427,7 +427,7 @@ jobs:
           TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
         run: |
           python -m build
-          python -m twine upload dist/*
+          python -m twine upload --repository testpypi dist/*
   
   publish_scc:
     needs: request_approval
@@ -455,7 +455,7 @@ jobs:
           TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
         run: |
           python -m build
-          python -m twine upload dist/*
+          python -m twine upload --repository testpypi dist/*
   
   publish_secops:
     needs: request_approval
@@ -483,7 +483,7 @@ jobs:
           TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
         run: |
           python -m build
-          python -m twine upload dist/*
+          python -m twine upload --repository testpypi dist/*
   
   publish_soar:
     needs: request_approval
@@ -511,4 +511,4 @@ jobs:
           TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
         run: |
           python -m build
-          python -m twine upload dist/*
+          python -m twine upload --repository testpypi dist/*
